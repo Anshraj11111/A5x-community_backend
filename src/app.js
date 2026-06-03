@@ -31,11 +31,20 @@ const app = express();
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (mobile apps, curl, etc.)
+    // Allow requests with no origin (mobile, Postman, server-to-server)
     if (!origin) return callback(null, true);
-    // Strip trailing slash from CLIENT_URL for comparison
-    const allowed = (env.CLIENT_URL || '').replace(/\/$/, '');
-    if (origin === allowed) return callback(null, true);
+
+    const allowed = env.CLIENT_URL || '';
+    // Strip trailing slash for comparison
+    const cleanAllowed = allowed.replace(/\/$/, '');
+    const cleanOrigin  = origin.replace(/\/$/, '');
+
+    // Exact match OR any Vercel preview deployment for the same project
+    const isAllowed =
+      cleanOrigin === cleanAllowed ||
+      cleanOrigin.endsWith('.vercel.app');
+
+    if (isAllowed) return callback(null, true);
     callback(new Error(`CORS: ${origin} not allowed`));
   },
   credentials: true,
