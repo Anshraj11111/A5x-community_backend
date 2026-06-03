@@ -30,7 +30,14 @@ const app = express();
 // Security middleware
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
-  origin: env.CLIENT_URL,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (mobile apps, curl, etc.)
+    if (!origin) return callback(null, true);
+    // Strip trailing slash from CLIENT_URL for comparison
+    const allowed = (env.CLIENT_URL || '').replace(/\/$/, '');
+    if (origin === allowed) return callback(null, true);
+    callback(new Error(`CORS: ${origin} not allowed`));
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
