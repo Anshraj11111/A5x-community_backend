@@ -2,7 +2,7 @@ import { Router } from 'express';
 import {
   getStats, getUsers, banUser, changeUserRole,
   getReports, reviewReport, createBadge, awardBadge,
-  broadcastNotification,
+  broadcastNotification, createFounderAccount, deleteUser,
 } from '../controllers/admin.controller.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { authorize } from '../middleware/authorize.js';
@@ -19,6 +19,10 @@ router.get('/stats',                     authorize('moderator'), getStats);
 router.get('/users',                     authorize('admin'), getUsers);
 router.patch('/users/:id/ban',           authorize('admin'), banUser);
 router.patch('/users/:id/role',          authorize('admin'), changeUserRole);
+
+// Create privileged accounts (founder/co_founder/admin/moderator) — admin only
+router.post('/users/create-privileged',  authorize('admin'), createFounderAccount);
+router.delete('/users/:id',              authorize('admin'), deleteUser);
 
 // Reports — moderator and above
 router.get('/reports',                   authorize('moderator'), getReports);

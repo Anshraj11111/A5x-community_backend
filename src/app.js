@@ -39,10 +39,12 @@ app.use(cors({
     const cleanAllowed = allowed.replace(/\/$/, '');
     const cleanOrigin  = origin.replace(/\/$/, '');
 
-    // Exact match OR any Vercel preview deployment for the same project
+    // Exact match OR any Vercel preview deployment OR any a5x.in subdomain
     const isAllowed =
       cleanOrigin === cleanAllowed ||
-      cleanOrigin.endsWith('.vercel.app');
+      cleanOrigin.endsWith('.vercel.app') ||
+      cleanOrigin === 'https://a5x.in' ||
+      cleanOrigin.endsWith('.a5x.in');
 
     if (isAllowed) return callback(null, true);
     callback(new Error(`CORS: ${origin} not allowed`));

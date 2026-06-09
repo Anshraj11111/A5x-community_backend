@@ -20,7 +20,7 @@ const UserSchema = new Schema(
     avatarUrl: { type: String },
     coverImageUrl: { type: String },
     bio: { type: String, maxlength: 300 },
-    role: { type: String, enum: ['user', 'moderator', 'admin'], default: 'user' },
+    role: { type: String, enum: ['user', 'moderator', 'admin', 'founder', 'co_founder'], default: 'user' },
     badges: [{ type: Schema.Types.ObjectId, ref: 'Badge' }],
     reputation: { type: Number, default: 0, min: 0 },
     isVerified: { type: Boolean, default: false },

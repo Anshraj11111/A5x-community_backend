@@ -1,9 +1,11 @@
 import { ApiError } from '../utils/ApiError.js';
 
 const roleHierarchy = {
-  user: 1,
-  moderator: 2,
-  admin: 3,
+  user:       1,
+  moderator:  2,
+  admin:      3,
+  co_founder: 4,
+  founder:    4,
 };
 
 export const authorize = (...roles) => {
@@ -12,8 +14,8 @@ export const authorize = (...roles) => {
       throw ApiError.unauthorized();
     }
 
-    const userLevel = roleHierarchy[req.user.role];
-    const requiredLevel = Math.min(...roles.map((r) => roleHierarchy[r]));
+    const userLevel = roleHierarchy[req.user.role] ?? 0;
+    const requiredLevel = Math.min(...roles.map((r) => roleHierarchy[r] ?? 999));
 
     if (userLevel < requiredLevel) {
       throw ApiError.forbidden('Insufficient permissions');

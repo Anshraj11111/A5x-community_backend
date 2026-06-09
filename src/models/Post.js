@@ -15,6 +15,8 @@ const PostSchema = new Schema(
     upvotes: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     downvotes: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     voteScore: { type: Number, default: 0 },
+    reposts: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    repostCount: { type: Number, default: 0, min: 0 },
     commentCount: { type: Number, default: 0, min: 0 },
     viewCount: { type: Number, default: 0, min: 0 },
     isPinned: { type: Boolean, default: false },

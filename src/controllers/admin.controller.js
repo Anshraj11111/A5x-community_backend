@@ -11,6 +11,7 @@ import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { getPagination, buildPaginationMeta } from '../utils/pagination.js';
+import bcrypt from 'bcryptjs';
 
 export const getStats = asyncHandler(async (_req, res) => {
   const [
@@ -92,7 +93,7 @@ export const banUser = asyncHandler(async (req, res) => {
 export const changeUserRole = asyncHandler(async (req, res) => {
   const { role } = req.body;
 
-  if (!['user', 'moderator', 'admin'].includes(role)) {
+  if (!['user', 'moderator', 'admin', 'founder', 'co_founder'].includes(role)) {
     throw ApiError.badRequest('Invalid role');
   }
 
@@ -160,9 +161,14 @@ export const awardBadge = asyncHandler(async (req, res) => {
   ApiResponse.success(res, null, 'Badge awarded');
 });
 
-export const broadcastNotification = asyncHandler(async (req, res) => {
-  const { title, message, type = 'system' } = req.body;
+export const deleteUser = asyncHandler(async (req, res) => {
+  const user = await User.findByIdAndDelete(req.params.id);
+  if (!user) throw ApiError.notFound('User not found');
+  ApiResponse.success(res, null, 'User deleted permanently');
+});
 
+export const broadcastNotification = asyncHandler(async (req, res) => {
+  const { title, message } = req.body;
   if (!title || !message) throw ApiError.badRequest('title and message are required');
 
   // Fetch all non-banned user IDs in batches to avoid memory issues
@@ -187,4 +193,39 @@ export const broadcastNotification = asyncHandler(async (req, res) => {
   }
 
   ApiResponse.success(res, { sent }, `Notification broadcast to ${sent} users`);
+});
+
+export const createFounderAccount = asyncHandler(async (req, res) => {
+  const { username, displayName, email, password, role = 'founder' } = req.body;
+
+  if (!['founder', 'co_founder', 'admin', 'moderator'].includes(role)) {
+    throw ApiError.badRequest('Invalid role for this endpoint');
+  }
+  if (!username || !displayName || !email || !password) {
+    throw ApiError.badRequest('username, displayName, email and password are required');
+  }
+  if (password.length < 8) {
+    throw ApiError.badRequest('Password must be at least 8 characters');
+  }
+
+  const emailExists = await User.findOne({ email: email.toLowerCase() });
+  if (emailExists) throw ApiError.conflict('Email is already registered');
+
+  const usernameTaken = await User.findOne({ username: username.toLowerCase() });
+  if (usernameTaken) throw ApiError.conflict('Username is already taken');
+
+  const hashedPassword = await bcrypt.hash(password, 12);
+
+  const user = await User.create({
+    username: username.toLowerCase(),
+    displayName,
+    email: email.toLowerCase(),
+    password: hashedPassword,
+    role,
+  });
+
+  const userObj = user.toObject();
+  delete userObj.password;
+
+  ApiResponse.created(res, { user: userObj }, `${role} account created successfully`);
 });

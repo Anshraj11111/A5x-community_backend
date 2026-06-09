@@ -155,6 +155,25 @@ export const votePost = asyncHandler(async (req, res) => {
   ApiResponse.success(res, { voteScore: post.voteScore, upvotes: post.upvotes.length });
 });
 
+export const repostPost = asyncHandler(async (req, res) => {
+  const userId = new mongoose.Types.ObjectId(req.user.id);
+  const post = await Post.findOne({ _id: req.params.id, isDeleted: false });
+  if (!post) throw ApiError.notFound('Post not found');
+
+  const hasReposted = post.reposts?.some(id => id.equals(userId));
+  if (hasReposted) {
+    post.reposts = post.reposts.filter(id => !id.equals(userId));
+    post.repostCount = Math.max(0, (post.repostCount || 0) - 1);
+  } else {
+    post.reposts = post.reposts || [];
+    post.reposts.push(userId);
+    post.repostCount = (post.repostCount || 0) + 1;
+  }
+
+  await post.save();
+  ApiResponse.success(res, { repostCount: post.repostCount, hasReposted: !hasReposted });
+});
+
 export const pinPost = asyncHandler(async (req, res) => {
   const post = await Post.findOneAndUpdate(
     { _id: req.params.id, isDeleted: false },
