@@ -37,6 +37,7 @@ export const initSocket = (httpServer) => {
     const userId = socket.userId;
 
     socket.join(`user:${userId}`);
+    socket.join('championship'); // All authenticated users receive real-time championship events
     console.log(`🔌 Socket connected: ${userId}`);
 
     Notification.countDocuments({ recipient: userId, isRead: false })
@@ -73,6 +74,14 @@ export const initSocket = (httpServer) => {
 
     socket.on('leave_club', ({ clubId }) => {
       socket.leave(`club:${clubId}`);
+    });
+
+    socket.on('join_season', ({ seasonId }) => {
+      if (seasonId) socket.join(`championship:${seasonId}`);
+    });
+
+    socket.on('leave_season', ({ seasonId }) => {
+      if (seasonId) socket.leave(`championship:${seasonId}`);
     });
 
     socket.on('disconnect', () => {

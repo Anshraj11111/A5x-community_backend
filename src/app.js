@@ -24,6 +24,8 @@ import showcaseRoutes from './routes/showcase.routes.js';
 import notificationRoutes from './routes/notification.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import productUpdateRoutes from './routes/productUpdate.routes.js';
+import championshipRoutes from './routes/championship.routes.js';
+import clubTaskRoutes from './routes/clubTask.routes.js';
 
 const app = express();
 
@@ -90,6 +92,8 @@ app.use(`${API_PREFIX}/showcase`, showcaseRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
 app.use(`${API_PREFIX}/updates`, productUpdateRoutes);
+app.use(`${API_PREFIX}/championship`, championshipRoutes);
+app.use(`${API_PREFIX}/club-tasks`, clubTaskRoutes);
 
 // 404 handler
 app.use(notFoundHandler);

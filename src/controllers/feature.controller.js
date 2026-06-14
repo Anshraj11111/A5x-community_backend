@@ -1,11 +1,13 @@
 import { FeatureRequest } from '../models/FeatureRequest.js';
 import { FeatureVote } from '../models/FeatureVote.js';
 import { User } from '../models/User.js';
+import { ClubMember } from '../models/ClubMember.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { getPagination, buildPaginationMeta } from '../utils/pagination.js';
 import { createNotification } from '../services/notification.service.js';
+import { awardPoints } from '../services/championship.service.js';
 
 const AUTHOR_SELECT = 'username displayName avatarUrl';
 
@@ -78,6 +80,14 @@ export const createFeature = asyncHandler(async (req, res) => {
   });
 
   await User.findByIdAndUpdate(req.user.id, { $inc: { reputation: 3 } });
+
+  // Championship points — resolve user's earliest club membership
+  const membership = await ClubMember.findOne({ user: req.user.id })
+    .sort({ joinedAt: 1, _id: 1 })
+    .lean();
+  if (membership) {
+    awardPoints({ userId: req.user.id, clubId: membership.club.toString(), action: 'featureRequest' }).catch(console.error);
+  }
 
   const populated = await feature.populate('author', AUTHOR_SELECT);
   ApiResponse.created(res, { feature: populated });

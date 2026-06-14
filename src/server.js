@@ -3,6 +3,7 @@ import app from './app.js';
 import { connectDB } from './config/db.js';
 import { initSocket } from './socket/index.js';
 import { env } from './config/env.js';
+import { startSeasonLifecycleJob } from './jobs/seasonLifecycle.job.js';
 
 const PORT = parseInt(env.PORT, 10);
 
@@ -17,6 +18,7 @@ const startServer = async () => {
     console.log(`🚀 A5X API running on port ${PORT} [${env.NODE_ENV}]`);
     console.log(`📡 Socket.io ready`);
     console.log(`🔗 Health: http://localhost:${PORT}/health`);
+    startSeasonLifecycleJob();
   });
 
   const shutdown = async (signal) => {

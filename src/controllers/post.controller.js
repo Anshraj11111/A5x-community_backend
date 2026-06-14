@@ -9,6 +9,7 @@ import { getPagination, buildPaginationMeta } from '../utils/pagination.js';
 import { uniqueSlug } from '../utils/slugify.js';
 import { createNotification } from '../services/notification.service.js';
 import { checkAndAwardBadges } from '../services/badge.service.js';
+import { awardPoints } from '../services/championship.service.js';
 
 const AUTHOR_SELECT = 'username displayName avatarUrl role isVerified';
 
@@ -72,6 +73,11 @@ export const createPost = asyncHandler(async (req, res) => {
 
   await User.findByIdAndUpdate(req.user.id, { $inc: { reputation: 5 } });
   await checkAndAwardBadges(req.user.id);
+
+  // Championship points — fire and forget
+  if (post.club) {
+    awardPoints({ userId: req.user.id, clubId: post.club.toString(), action: 'post' }).catch(console.error);
+  }
 
   const populated = await post.populate('author', AUTHOR_SELECT);
   ApiResponse.created(res, { post: populated });
@@ -139,6 +145,11 @@ export const votePost = asyncHandler(async (req, res) => {
         entityType: 'post',
         message: `Someone upvoted your post "${post.title}"`,
       });
+
+      // Championship points — award to the author's club, not the voter's
+      if (post.club) {
+        awardPoints({ userId: post.author.toString(), clubId: post.club.toString(), action: 'upvoteReceived' }).catch(console.error);
+      }
     }
   } else {
     if (hasDownvoted) {

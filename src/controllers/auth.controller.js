@@ -84,6 +84,27 @@ export const getMe = asyncHandler(async (req, res) => {
   ApiResponse.success(res, { user });
 });
 
+/**
+ * GET /auth/club-moderator-check
+ * Returns whether the authenticated user is a club moderator in any club.
+ * Used by the admin portal login to grant club-admin access.
+ */
+export const checkClubModerator = asyncHandler(async (req, res) => {
+  const { ClubMember } = await import('../models/ClubMember.js');
+
+  const modMembership = await ClubMember.findOne({
+    user: req.user.id,
+    role: { $in: ['moderator', 'owner'] },
+  })
+    .populate('club', 'name slug icon')
+    .lean();
+
+  ApiResponse.success(res, {
+    isClubModerator: !!modMembership,
+    club: modMembership?.club ?? null,
+  });
+});
+
 export const logout = asyncHandler(async (_req, res) => {
   ApiResponse.success(res, null, 'Logged out successfully');
 });

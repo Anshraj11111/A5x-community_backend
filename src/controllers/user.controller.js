@@ -44,7 +44,7 @@ export const uploadAvatar = asyncHandler(async (req, res) => {
   // Delete old avatar
   if (user.avatarUrl) deleteFile(user.avatarUrl);
 
-  const avatarUrl = getFileUrl(req.file.filename);
+  const avatarUrl = getFileUrl(req.file);
 
   await User.findByIdAndUpdate(req.user.id, { avatarUrl });
 
@@ -60,7 +60,7 @@ export const uploadCover = asyncHandler(async (req, res) => {
   // Delete old cover
   if (user.coverImageUrl) deleteFile(user.coverImageUrl);
 
-  const coverImageUrl = getFileUrl(req.file.filename);
+  const coverImageUrl = getFileUrl(req.file);
 
   await User.findByIdAndUpdate(req.user.id, { coverImageUrl });
 

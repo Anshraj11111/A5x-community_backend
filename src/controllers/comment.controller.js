@@ -7,6 +7,7 @@ import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { createNotification } from '../services/notification.service.js';
 import { checkAndAwardBadges } from '../services/badge.service.js';
+import { awardPoints } from '../services/championship.service.js';
 
 const AUTHOR_SELECT = 'username displayName avatarUrl role isVerified';
 
@@ -35,6 +36,12 @@ export const createComment = asyncHandler(async (req, res) => {
   await Post.findByIdAndUpdate(postId, { $inc: { commentCount: 1 } });
   await User.findByIdAndUpdate(req.user.id, { $inc: { reputation: 2 } });
   await checkAndAwardBadges(req.user.id);
+
+  // Championship points — resolve parent post's club
+  const parentPost = await Post.findById(postId).select('club').lean();
+  if (parentPost?.club) {
+    awardPoints({ userId: req.user.id, clubId: parentPost.club.toString(), action: 'comment' }).catch(console.error);
+  }
 
   if (post.author.toString() !== req.user.id) {
     await createNotification({

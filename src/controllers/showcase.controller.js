@@ -1,10 +1,12 @@
 import mongoose from 'mongoose';
 import { ShowcasePost } from '../models/ShowcasePost.js';
 import { User } from '../models/User.js';
+import { ClubMember } from '../models/ClubMember.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { getPagination, buildPaginationMeta } from '../utils/pagination.js';
+import { awardPoints } from '../services/championship.service.js';
 
 const AUTHOR_SELECT = 'username displayName avatarUrl isVerified';
 
@@ -59,6 +61,14 @@ export const createShowcasePost = asyncHandler(async (req, res) => {
   });
 
   await User.findByIdAndUpdate(req.user.id, { $inc: { reputation: 5 } });
+
+  // Championship points — resolve user's earliest club membership
+  const membership = await ClubMember.findOne({ user: req.user.id })
+    .sort({ joinedAt: 1, _id: 1 })
+    .lean();
+  if (membership) {
+    awardPoints({ userId: req.user.id, clubId: membership.club.toString(), action: 'showcasePost' }).catch(console.error);
+  }
 
   const populated = await post.populate('author', AUTHOR_SELECT);
   ApiResponse.created(res, { post: populated });

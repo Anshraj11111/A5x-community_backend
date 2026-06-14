@@ -1,31 +1,63 @@
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname, join } from 'path';
+import { v2 as cloudinary } from 'cloudinary';
 import { env } from '../config/env.js';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-const UPLOADS_DIR = join(__dirname, '../../../uploads');
+// Configure Cloudinary (same config as upload.js middleware)
+cloudinary.config({
+  cloud_name: env.CLOUDINARY_CLOUD_NAME,
+  api_key:    env.CLOUDINARY_API_KEY,
+  api_secret: env.CLOUDINARY_API_SECRET,
+});
 
-// Returns the full public URL for an uploaded file
-export const getFileUrl = (filename) => {
-  const baseUrl = env.CLIENT_URL.includes('localhost')
-    ? `http://localhost:${env.PORT || 4000}`
-    : env.CLIENT_URL.replace('5173', env.PORT || '4000');
-  return `/uploads/${filename}`;
+/**
+ * Returns the Cloudinary URL from a multer-storage-cloudinary file object.
+ * req.file.path  → full Cloudinary HTTPS URL  ✅
+ * req.file.filename → just the public_id       ❌ (don't use this)
+ */
+export const getFileUrl = (fileOrPath) => {
+  // When called with req.file, use .path (Cloudinary URL)
+  if (fileOrPath && typeof fileOrPath === 'object' && fileOrPath.path) {
+    return fileOrPath.path;
+  }
+  // When called with a string that is already a full URL, return as-is
+  if (typeof fileOrPath === 'string' && fileOrPath.startsWith('http')) {
+    return fileOrPath;
+  }
+  // Legacy: treat as Cloudinary public_id and build URL
+  if (typeof fileOrPath === 'string' && fileOrPath) {
+    return cloudinary.url(fileOrPath, { secure: true });
+  }
+  return null;
 };
 
-// Delete a file from local disk
-export const deleteFile = (fileUrl) => {
+/**
+ * Delete an image from Cloudinary by its URL or public_id.
+ */
+export const deleteFile = async (fileUrl) => {
   try {
     if (!fileUrl) return;
-    const filename = path.basename(fileUrl);
-    const filePath = join(UPLOADS_DIR, filename);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+
+    let publicId;
+    if (fileUrl.startsWith('http')) {
+      // Extract public_id from Cloudinary URL
+      // URL format: https://res.cloudinary.com/<cloud>/image/upload/v<ver>/<folder>/<id>.<ext>
+      const urlParts = fileUrl.split('/');
+      const uploadIndex = urlParts.indexOf('upload');
+      if (uploadIndex !== -1) {
+        // Everything after 'upload/v<version>/' is the public_id (without extension)
+        const withVersion = urlParts.slice(uploadIndex + 1).join('/');
+        // Remove version segment (v1234567890/)
+        const withoutVersion = withVersion.replace(/^v\d+\//, '');
+        // Remove file extension
+        publicId = withoutVersion.replace(/\.[^/.]+$/, '');
+      }
+    } else {
+      publicId = fileUrl;
+    }
+
+    if (publicId) {
+      await cloudinary.uploader.destroy(publicId);
     }
   } catch (err) {
-    console.warn('Failed to delete file:', err.message);
+    console.warn('Failed to delete Cloudinary file:', err.message);
   }
 };

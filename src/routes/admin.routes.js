@@ -4,6 +4,16 @@ import {
   getReports, reviewReport, createBadge, awardBadge,
   broadcastNotification, createFounderAccount, deleteUser,
 } from '../controllers/admin.controller.js';
+import {
+  listAllSeasons,
+  createSeason,
+  updateSeason,
+  deleteSeason,
+  activateSeasonManually,
+  endSeasonManually,
+} from '../controllers/admin.championship.controller.js';
+import { createSeasonSchema, updateSeasonSchema } from '../validators/championship.validator.js';
+import { validate } from '../middleware/validate.js';
 import { authenticate } from '../middleware/authenticate.js';
 import { authorize } from '../middleware/authorize.js';
 
@@ -34,5 +44,13 @@ router.post('/notifications/broadcast',  authorize('admin'), broadcastNotificati
 // Badges — admin only
 router.post('/badges',                   authorize('admin'), createBadge);
 router.post('/badges/:id/award/:userId', authorize('admin'), awardBadge);
+
+// Championship seasons — admin only
+router.get('/championship/seasons',            authorize('admin'), listAllSeasons);
+router.post('/championship/seasons',           authorize('admin'), validate(createSeasonSchema), createSeason);
+router.patch('/championship/seasons/:id',      authorize('admin'), validate(updateSeasonSchema), updateSeason);
+router.delete('/championship/seasons/:id',     authorize('admin'), deleteSeason);
+router.post('/championship/seasons/:id/activate', authorize('admin'), activateSeasonManually);
+router.post('/championship/seasons/:id/end',   authorize('admin'), endSeasonManually);
 
 export default router;

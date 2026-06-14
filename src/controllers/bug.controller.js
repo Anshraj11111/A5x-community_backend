@@ -1,9 +1,11 @@
 import { BugReport } from '../models/BugReport.js';
+import { ClubMember } from '../models/ClubMember.js';
 import { ApiError } from '../utils/ApiError.js';
 import { ApiResponse } from '../utils/ApiResponse.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 import { getPagination, buildPaginationMeta } from '../utils/pagination.js';
 import { createNotification } from '../services/notification.service.js';
+import { awardPoints } from '../services/championship.service.js';
 
 const REPORTER_SELECT = 'username displayName avatarUrl';
 
@@ -55,6 +57,14 @@ export const createBug = asyncHandler(async (req, res) => {
     severity,
     attachments: attachments || [],
   });
+
+  // Championship points — resolve user's earliest club membership
+  const membership = await ClubMember.findOne({ user: req.user.id })
+    .sort({ joinedAt: 1, _id: 1 })
+    .lean();
+  if (membership) {
+    awardPoints({ userId: req.user.id, clubId: membership.club.toString(), action: 'bugReport' }).catch(console.error);
+  }
 
   const populated = await bug.populate('reporter', REPORTER_SELECT);
   ApiResponse.created(res, { bug: populated });
